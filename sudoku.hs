@@ -70,10 +70,6 @@ takeThree :: [int] -> [[int]]
 takeThree [] = []
 takeThree (a:b:c:ds) = [a,b,c] : takeThree ds
 
-------------------------------------
--- Altering the board
-------------------------------------
-
 concatBoard :: Puzzle -> [Cell]
 concatBoard p = concat p
 
@@ -131,6 +127,9 @@ possibleCellValues :: [Coordinate] -> Puzzle -> [[Int]]
 possibleCellValues [] p = []
 possibleCellValues (x:xs) p = [i | i <- [1..9], checkAll i x p] : possibleCellValues xs p
 
+blankZipPossibilities :: [Coordinate] -> [[Int]] -> Possibilities
+blankZipPossibilities b p = zip b p
+
 ------------------------------------
 -- Checking for valid digits 
 ------------------------------------
@@ -153,6 +152,18 @@ checkAll i (row,col) p = checkRow i (getRow row p)
                       && checkColumn i (getColumn col p)
                       && checkBlock i (getBlock (row,col) p)
 
+------------------------------------
+-- Solving the puzzle
+------------------------------------
+
+--fillAbsolutes :: Puzzle -> Possibilities -> Puzzle
+--fillAbsolutes puz (x:xs) = if length (snd (head possibilities)) == 1
+                             --then updateBoard p x 
+
+--updateBoard :: Puzzle -> [Coordinate] -> [[Int]] -> Puzzle
+--updateBoard p c v = 
+
+--solve :: Puzzle -> 
 
 
 
