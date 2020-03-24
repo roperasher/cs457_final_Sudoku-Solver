@@ -27,24 +27,24 @@ board =
 -- Types and Data Types
 ------------------------------------------------------------------------------
 
--- Cell represents a slot in the puzzle.
+-- Cellval represents a slot in the puzzle.
 -- If the cell == 0, the cell is considered to be empty
 -- If the cell contains a non-zero value, it was either
 -- set initially to a value,
 -- or has been filled by the solver 
-type Cell = Int
+type Cellval = Int
 
 -- A row is a list of integers that can contain numbers between 0 - 9
 -- Once solved, a row must have atleast one of each values 1 - 9
-type Row = [Cell]
+type Row = [Cellval]
 
 -- A column is a list of integers that can contain numbers between 0 - 9
 -- Once solved, a column must have atleast one of each values 1 - 9
-type Column = [Cell]
+type Column = [Cellval]
 
 -- A box is a 3x3 set of cells that can contains numbers between 0 - 9
 -- Once solved, a block must have atleast one of each values 1 - 9 
-type Block = [Cell]
+type Block = [Cellval]
 
 -- The Sudoku puzzle
 -- A list of list of ints that can contain values 0 - 9
@@ -53,10 +53,10 @@ type Puzzle = [Row]
 
 -- A location on the puzzle
 -- Range from (0, 0) - (8, 8)
-type Coordinate = (Int, Int)
+type Coordinate = (Cellval, Cellval)
 
 -- A list of possible values for each blank cell
-type Possibilities = [(Coordinate, [Int])]
+type Possibilities = [(Coordinate, [Cellval])]
 
 ------------------------------------------------------------------------------
 -- Functions
@@ -70,11 +70,21 @@ takeThree :: [int] -> [[int]]
 takeThree [] = []
 takeThree (a:b:c:ds) = [a,b,c] : takeThree ds
 
-concatBoard :: Puzzle -> [Cell]
+concatBoard :: Puzzle -> [Cellval]
 concatBoard p = concat p
 
 combine :: [a] -> [a] -> [[a]]
 combine x y = [x,y]
+
+removeHead :: [a] -> [a]
+removeHead (x:xs) = xs
+
+
+blankZipPossibilities :: [Coordinate] -> [[Cellval]] -> Possibilities
+blankZipPossibilities b p = zip b p
+
+combineCoordWithPoss :: Coordinate -> [Cellval] -> [(Coordinate, [Cellval])]
+combineCoordWithPoss c p = [(c, p)]
 
 ------------------------------------
 -- Getting parts of the board
@@ -90,8 +100,11 @@ rows p = p
 columns :: Puzzle -> [Column]
 columns p = transpose p 
 
+--Couldn't figure out how to get blocks in regular order.
+--That regular order being top left, top middle, top right, middle left, center, etc.
+--Got blocks by column, so top left, middle left, bottom left, middle top, center, etc. 
 blocks :: Puzzle -> [Block]
-blocks =  map concat . takeThree . concat . transpose . map takeThree 
+blocks p = map concat (takeThree (concat (transpose (map takeThree p))))
 
 -- A list of all blank (initiallized to zero) cells in a puzzle
 blankCoordinates :: Puzzle -> [Coordinate]
@@ -123,12 +136,9 @@ getBlock (row,col) p | (row < 3 && col < 3) = (blocks p) !! 0
 
 -- Takes a list of blankCoordinates and outputs a list of list of all possbile values
 -- for each blank coordinate
-possibleCellValues :: [Coordinate] -> Puzzle -> [[Int]]
+possibleCellValues :: [Coordinate] -> Puzzle -> [[Cellval]]
 possibleCellValues [] p = []
 possibleCellValues (x:xs) p = [i | i <- [1..9], checkAll i x p] : possibleCellValues xs p
-
-blankZipPossibilities :: [Coordinate] -> [[Int]] -> Possibilities
-blankZipPossibilities b p = zip b p
 
 ------------------------------------
 -- Checking for valid digits 
@@ -153,6 +163,20 @@ checkAll i (row,col) p = checkRow i (getRow row p)
                       && checkBlock i (getBlock (row,col) p)
 
 ------------------------------------
+-- Updating/Checking the puzzle 
+------------------------------------
+
+--Probably not the most functional looking way to write this function,
+--but it gets the job done.
+--Int (v) is the value in the board to update
+updateBoard :: Puzzle -> Int -> Coordinate -> Puzzle
+updateBoard p v (x,y) = take x p ++ [take y (p!!x) ++ [v] ++ drop (y+1) (p!!x)] ++ drop (x+1) p
+
+
+checkUpdatedBoard :: Puzzle -> Coordinate -> [Cellval] -> Bool
+checkUpdatedBoard puzz coord vals = checkAll (head vals) coord (updateBoard puzz (head vals) coord) 
+
+------------------------------------
 -- Solving the puzzle
 ------------------------------------
 
@@ -160,28 +184,15 @@ checkAll i (row,col) p = checkRow i (getRow row p)
 --fillAbsolutes puz (x:xs) = if length (snd (head possibilities)) == 1
                              --then updateBoard p x 
 
---updateBoard :: Puzzle -> [Coordinate] -> [[Int]] -> Puzzle
---updateBoard p c v = 
+--Solve the board using backtracking
+solve :: Puzzle -> Possibilities -> Puzzle
+solve p (x:xs) = if checkUpdatedBoard p (fst x) (snd x)
+                   then solve ((updateBoard p (head (snd x)) (fst x))) xs
+                   else solve p (combineCoordWithPoss(fst  x) (removeHead (snd  x)))
 
---solve :: Puzzle -> 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+------------------------------------
+-- Main 
+------------------------------------
 
 --main = do
--- putStr . unlines $ map show easyBoard
+--solve board (blankZipPossibilities (blankCoordinates board) (possibleCellValues (blankCoordinates board) board) 
